@@ -5,17 +5,20 @@ import json
 import re
 from groq import Groq
 
-# 1. Set halaman Streamlit agar responsif dan estetik
+# 1. Set halaman Streamlit agar responsif dan memiliki tata letak yang estetik
 st.set_page_config(page_title="Alex Data Science Workspace", layout="wide")
 
-# 2. Hubungkan ke Groq Cloud API Client
+# 2. Hubungkan ke Groq Cloud API Client dengan penanganan error jika Secrets kosong
 @st.cache_resource
 def get_groq_client():
     try:
-        api_key = st.secrets["GROQ_API_KEY"]
-        return Groq(api_key=api_key)
+        # Mengambil API key dari Streamlit Secrets secara aman
+        if "GROQ_API_KEY" in st.secrets:
+            api_key = st.secrets["GROQ_API_KEY"]
+            return Groq(api_key=api_key)
     except Exception:
-        return None
+        pass
+    return None
 
 client = get_groq_client()
 
@@ -23,13 +26,18 @@ st.title("🤖 Alex - Data Science Workspace (Cloud Llama)")
 st.caption("Zero-cost UI, Automated Dataset Generation, and Instant Custom CSV Analytics")
 st.write("---")
 
-# Validasi API Key Groq awal
+# Validasi awal: Tampilkan instruksi jika API Key belum dipasang di Streamlit Cloud
 if client is None:
-    st.error("API Key belum disetel! Harap masukkan variabel `GROQ_API_KEY` di Advanced Settings -> Streamlit Secrets.")
+    st.error("⚠️ **API Key Groq Belum Terdeteksi!**")
+    st.info(
+        "Silakan tambahkan variabel `GROQ_API_KEY` di panel **Advanced Settings -> Secrets** "
+        "pada dashboard Streamlit Cloud Anda dengan format:\n\n"
+        '```toml\nGROQ_API_KEY = "gsk_xxxxxxxxxxxxxxxxxxxxxxxx"\n```'
+    )
     st.stop()
 
 # ==========================================================
-# 💬 AREA UTAMA: INPUT CHAT & TOMBOL "ADD CSV"
+# 💬 AREA UTAMA: INPUT CHAT & TOMBOL TOGGLE "ADD CSV"
 # ==========================================================
 user_query = st.text_area(
     "Masukkan perintah atau instruksi analisis data kamu di sini:", 
@@ -38,13 +46,13 @@ user_query = st.text_area(
                 "Atau aktifkan opsi di bawah untuk mengunggah file CSV milikmu sendiri."
 )
 
-# Fitur Interaktif: Tombol Toggle untuk Membuka Fitur "Add CSV"
+# Fitur Interaktif: Tombol Toggle untuk Membuka Fitur "Add CSV" secara dinamis
 show_upload_option = st.toggle("📎 Tambahkan File CSV (Add CSV untuk Analisis)", value=False)
 
 csv_context_prompt = ""
 uploaded_df = None
 
-# Jika Fitur "Add CSV" diaktifkan oleh user, tampilkan uploader secara dinamis
+# Jika user mengaktifkan fitur "Add CSV", tampilkan uploader berkas
 if show_upload_option:
     st.markdown("---")
     st.subheader("📁 Unggah Dataset CSV")
@@ -58,7 +66,7 @@ if show_upload_option:
             with st.expander("🔍 Lihat Pratinjau Data (5 Baris Teratas)"):
                 st.dataframe(uploaded_df.head(5), use_container_width=True)
             
-            # Ekstraksi metadata skema untuk disuntikkan ke konteks Llama
+            # --- PROMPT ENGINEERING: Ekstraksi skema data otomatis untuk konteks LLM ---
             columns_schema = {col: str(dtype) for col, dtype in zip(uploaded_df.columns, uploaded_df.dtypes)}
             data_sample_head = uploaded_df.head(3).to_dict(orient='records')
             
@@ -92,13 +100,14 @@ if process_btn:
                 "The JSON must be tabular-friendly (flat key-value pairs). Do not mix prose inside the JSON block."
             )
             
+            # Gabungkan prompt sistem dasar, konteks metadata CSV, dan kueri user aktif
             final_user_prompt = f"{system_prompt}{csv_context_prompt}\n\nUser Question: {user_query}"
             
             try:
-                # Panggil model Llama terbaru (Llama 3.3 70B Versatile)
+                # Memanggil model Llama 3.1 8B Instant (Super cepat, efisien, dan didukung penuh oleh Groq)
                 chat_completion = client.chat.completions.create(
                     messages=[{"role": "user", "content": final_user_prompt}],
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                 )
                 full_reply = chat_completion.choices[0].message.content
                 
