@@ -27,19 +27,18 @@ st.write("---")
 
 if client is None:
     st.error("⚠️ API Key Groq Belum Terdeteksi di Streamlit Secrets!")
-    st.info('Silakan tambahkan variabel `GROQ_API_KEY = "gsk_xxxx"` pada panel Secrets di dashboard Streamlit Cloud Anda.')
     st.stop()
 
 # ==========================================================
 # 💬 INPUT & UPLOAD CSV
 # ==========================================================
 user_query = st.text_area(
-    "Masukkan instruksi data science serumit apa pun di sini:", 
+    "Masukkan instruksi data science dan visualisasi yang kamu mau:", 
     height=120,
-    placeholder="Contoh: Lakukan clustering dengan K-Means menjadi 3 cluster berdasarkan kolom numerik, lalu berikan kesimpulan karakteristiknya."
+    placeholder="Contoh: Lakukan clustering dengan K-Means menjadi 3 cluster, lalu buatkan grafik scatter plot antara Tenure vs Monthly Charges dengan warna berdasarkan Cluster."
 )
 
-show_upload_option = st.toggle("📎 Tambahkan File CSV (Wajib diaktifkan jika analisis file lokal)", value=True)
+show_upload_option = st.toggle("📎 Tambahkan File CSV", value=True)
 
 csv_context_prompt = ""
 uploaded_df = None
@@ -72,37 +71,35 @@ if process_btn:
     if user_query.strip() == "":
         st.warning("Mohon isi instruksi atau pertanyaan Anda terlebih dahulu.")
     else:
-        with st.spinner("Alex sedang memikirkan algoritma terbaik untuk data Anda..."):
+        with st.spinner("Alex sedang memikirkan perhitungan & grafik terbaik..."):
             
-            # Memperketat instruksi sistem agar AI menulis kode bebas dari jebakan definisi variabel
+            # Mengubah instruksi agar AI yang membuat objek fig dari plotly express langsung di kodenya
             system_prompt = (
                 "You are Alex, an expert Data Scientist. You have access to a pandas DataFrame named `uploaded_df`.\n"
                 "Your task is to write a clean Python script to perform the requested data science task perfectly.\n"
                 "CRITICAL CODE RULES:\n"
                 "1. You MUST wrap the executable Python code inside a ```python ... ``` block.\n"
                 "2. The code must perform the calculation and finally assign the resulting/transformed dataframe to a variable named `output_df`.\n"
-                "3. IMPORTANT SAFETY RULE: Do not use inline lambda logic that references the dataframe while creating it (e.g., instead of `df['col'] = df['x'].apply(lambda v: v > df['x'].mean())`, you MUST calculate the mean into a separate variable first, like `mean_val = df['x'].mean()` then apply it).\n"
+                "3. DYNAMIC VISUALIZATION RULE: You MUST create a custom Plotly figure object based on the user's chart preference (e.g., scatter, box, histogram, etc.) and assign it to a variable named `fig`. Make sure it uses `template='plotly_dark'`.\n"
+                "4. SAFETY RULE: Do not use inline lambda logic that references the dataframe while creating it (calculate stats into separate variables first).\n"
                 "Do not use external libraries that require installation outside pandas, numpy, and scikit-learn."
             )
             
             final_prompt = f"{system_prompt}{csv_context_prompt}\n\nUser Request: {user_query}"
             
             try:
-                # Menggunakan model Llama 3.3 70B Versatile yang sangat andal untuk instruksi rumit
                 chat_completion = client.chat.completions.create(
                     messages=[{"role": "user", "content": final_prompt}],
                     model="llama-3.3-70b-versatile", 
                 )
                 raw_reply = chat_completion.choices[0].message.content
                 
-                # Ekstrak teks narasi penjelasan dan blok kode data Python menggunakan Regex
                 code_match = re.search(r'```python\s*(.*?)\s*```', raw_reply, re.DOTALL)
                 explanation_text = re.sub(r'```python\s*.*?\s*```', '', raw_reply, flags=re.DOTALL).strip()
                 
                 st.subheader("💡 Analisis & Rekomendasi Alex")
                 st.markdown(explanation_text)
                 
-                # JALANKAN EKSEKUSI NYATA DI BACKEND
                 if code_match:
                     python_code = code_match.group(1)
                     
@@ -111,7 +108,8 @@ if process_btn:
                         'pd': pd,
                         'px': px,
                         'uploaded_df': st.session_state.get('uploaded_df', None),
-                        'output_df': None
+                        'output_df': None,
+                        'fig': None # Menyiapkan penampung untuk grafik kustom
                     }
                     
                     stdout_buffer = io.StringIO()
@@ -119,7 +117,6 @@ if process_btn:
                         with contextlib.redirect_stdout(stdout_buffer):
                             exec(python_code, globals(), local_env)
                         
-                        # Fallback Engine: Jika AI lupa mendefinisikan output_df tapi malah mengubah uploaded_df
                         real_output_df = local_env.get('output_df', None)
                         if real_output_df is None and isinstance(local_env.get('uploaded_df'), pd.DataFrame):
                             real_output_df = local_env.get('uploaded_df')
@@ -127,7 +124,7 @@ if process_btn:
                         # Render Dataframe Hasil Perhitungan Nyata
                         if isinstance(real_output_df, pd.DataFrame):
                             st.write("---")
-                            st.subheader("📊 Dataset Hasil Eksekusi Nyata Backend (Akurat 100%)")
+                            st.subheader("📊 Dataset Hasil Eksekusi Nyata Backend")
                             st.dataframe(real_output_df, use_container_width=True)
                             
                             csv_bytes = real_output_df.to_csv(index=False).encode('utf-8')
@@ -137,16 +134,15 @@ if process_btn:
                                 file_name='alex_real_executed_data.csv',
                                 mime='text/csv',
                             )
-                            
-                            # Pembuatan Visualisasi Grafik Otomatis
-                            num_cols = real_output_df.select_dtypes(include=['number']).columns.tolist()
-                            str_cols = real_output_df.select_dtypes(include=['object', 'category']).columns.tolist()
-                            
-                            if len(str_cols) >= 1 and len(num_cols) >= 1:
-                                fig = px.bar(real_output_df, x=str_cols[0], y=num_cols[0], 
-                                             title=f"Visualisasi Hasil Perhitungan: {str_cols[0]} vs {num_cols[0]}", 
-                                             template="plotly_dark")
-                                st.plotly_chart(fig, use_container_width=True)
+                        
+                        # ==========================================================
+                        # 📈 RENDER GRAFIK DINAMIS (Bukan Bar Chart Paksaan Lagi)
+                        # ==========================================================
+                        custom_fig = local_env.get('fig', None)
+                        if custom_fig is not None:
+                            st.write("---")
+                            st.subheader("📈 Visualisasi Grafik Analisis Kustom")
+                            st.plotly_chart(custom_fig, use_container_width=True)
                         else:
                             print_output = stdout_buffer.getvalue()
                             if print_output:
