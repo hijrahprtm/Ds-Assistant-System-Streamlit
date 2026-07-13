@@ -3,7 +3,10 @@ Helpin u to learn about Data Science
 
 https://dsassistanttolearn.streamlit.app/
 
-**TASK:**
+**TASK**
+Alex, please group the customers in this CSV dataset into 3 clusters using the K-Means algorithm based on the 'Tenure_Months' and 'Monthly_Charges' columns. Save the results into output_df with a new column named 'Cluster'. After that, create a scatter plot using Plotly Express and save it to the variable fig. Set the X-axis to 'Tenure_Months', the Y-axis to 'Monthly_Charges', and color the dots based on the 'Cluster' column. Make sure to convert the 'Cluster' column data type to string so that the legend colors are clearly separated.
+
+**SOAL:**
 "Alex, tolong kelompokkan pelanggan di data CSV ini menjadi 3 cluster menggunakan algoritma K-Means berdasarkan kolom 'Tenure_Months' dan 'Monthly_Charges'. Simpan hasilnya ke dalam output_df dengan kolom baru bernama 'Cluster'. Setelah itu, buatlah grafik sebaran (scatter plot) menggunakan Plotly Express yang disimpan ke variabel fig. Atur agar sumbu X adalah 'Tenure_Months', sumbu Y adalah 'Monthly_Charges', dan warnai titiknya (color) berdasarkan kolom 'Cluster'. Pastikan tipe data kolom Cluster diubah menjadi string agar warna legendanya terpisah dengan jelas."
 
 <img width="629" height="355" alt="image" src="https://github.com/user-attachments/assets/b1716355-a382-4815-a7b2-9e3dba5cdb36" />
