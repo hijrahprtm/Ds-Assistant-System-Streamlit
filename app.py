@@ -3,172 +3,171 @@ import pandas as pd
 import plotly.express as px
 import json
 import re
+import io
+import contextlib
 from groq import Groq
 
-# 1. Set halaman Streamlit agar responsif dan memiliki tata letak yang estetik
-st.set_page_config(page_title="Alex Data Science Workspace", layout="wide")
+# 1. Konfigurasi Halaman
+st.set_page_config(page_title="Alex Advanced Thinking Workspace", layout="wide")
 
-# 2. Hubungkan ke Groq Cloud API Client dengan penanganan error jika Secrets kosong
 @st.cache_resource
 def get_groq_client():
     try:
-        # Mengambil API key dari Streamlit Secrets secara aman
         if "GROQ_API_KEY" in st.secrets:
-            api_key = st.secrets["GROQ_API_KEY"]
-            return Groq(api_key=api_key)
+            return Groq(api_key=st.secrets["GROQ_API_KEY"])
     except Exception:
         pass
     return None
 
 client = get_groq_client()
 
-st.title("🤖 Alex - Data Science Workspace (Cloud Llama)")
-st.caption("Zero-cost UI, Automated Dataset Generation, and Instant Custom CSV Analytics")
+st.title("🧠 Alex - Advanced Thinking Data Science Workspace")
+st.caption("Powered by DeepSeek-R1 Reasoning & Live Python Execution Engine")
 st.write("---")
 
-# Validasi awal: Tampilkan instruksi jika API Key belum dipasang di Streamlit Cloud
 if client is None:
-    st.error("⚠️ **API Key Groq Belum Terdeteksi!**")
-    st.info(
-        "Silakan tambahkan variabel `GROQ_API_KEY` di panel **Advanced Settings -> Secrets** "
-        "pada dashboard Streamlit Cloud Anda dengan format:\n\n"
-        '```toml\nGROQ_API_KEY = "gsk_xxxxxxxxxxxxxxxxxxxxxxxx"\n```'
-    )
+    st.error("⚠️ API Key Groq Belum Terdeteksi di Streamlit Secrets!")
     st.stop()
 
 # ==========================================================
-# 💬 AREA UTAMA: INPUT CHAT & TOMBOL TOGGLE "ADD CSV"
+# 💬 INPUT & UPLOAD CSV
 # ==========================================================
 user_query = st.text_area(
-    "Masukkan perintah atau instruksi analisis data kamu di sini:", 
+    "Masukkan instruksi data science serumit apa pun di sini:", 
     height=120,
-    placeholder="Contoh: Buatkan data tren penjualan 5 produk selama 6 bulan terakhir beserta grafiknya.\n"
-                "Atau aktifkan opsi di bawah untuk mengunggah file CSV milikmu sendiri."
+    placeholder="Contoh: Lakukan deteksi pencilan dengan Isolation Forest, atau hitung korelasi nonlinear, lalu berikan hasil olahannya."
 )
 
-# Fitur Interaktif: Tombol Toggle untuk Membuka Fitur "Add CSV" secara dinamis
-show_upload_option = st.toggle("📎 Tambahkan File CSV (Add CSV untuk Analisis)", value=False)
+show_upload_option = st.toggle("📎 Tambahkan File CSV (Wajib diaktifkan jika analisis file lokal)", value=True)
 
 csv_context_prompt = ""
 uploaded_df = None
 
-# Jika user mengaktifkan fitur "Add CSV", tampilkan uploader berkas
 if show_upload_option:
-    st.markdown("---")
-    st.subheader("📁 Unggah Dataset CSV")
-    uploaded_file = st.file_uploader("Pilih file CSV dari komputer Anda", type=["csv"])
-    
+    uploaded_file = st.file_uploader("Unggah berkas CSV Anda", type=["csv"])
     if uploaded_file is not None:
         try:
-            uploaded_df = pd.read_csv(uploaded_file)
-            st.success(f"✓ Berhasil memuat: `{uploaded_file.name}` ({uploaded_df.shape[0]} baris, {uploaded_df.shape[1]} kolom)")
+            # Simpan dataframe ke session state agar bisa diakses oleh exec() nantinya
+            st.session_state['uploaded_df'] = pd.read_csv(uploaded_file)
+            uploaded_df = st.session_state['uploaded_df']
+            st.success(f"✓ Terbaca: `{uploaded_file.name}` ({uploaded_df.shape[0]} baris)")
             
-            with st.expander("🔍 Lihat Pratinjau Data (5 Baris Teratas)"):
+            with st.expander("🔍 Pratinjau Data"):
                 st.dataframe(uploaded_df.head(5), use_container_width=True)
             
-            # --- PROMPT ENGINEERING: Ekstraksi skema data otomatis untuk konteks LLM ---
-            columns_schema = {col: str(dtype) for col, dtype in zip(uploaded_df.columns, uploaded_df.dtypes)}
-            data_sample_head = uploaded_df.head(3).to_dict(orient='records')
-            
+            # Berikan info struktur data ke AI agar dia tahu nama kolomnya
             csv_context_prompt = (
-                f"\n\n[USER UPLOADED DATA CONTEXT]\n"
-                f"The user has uploaded a local CSV dataset named: '{uploaded_file.name}'.\n"
-                f"Dataset Dimensions: {uploaded_df.shape[0]} rows and {uploaded_df.shape[1]} columns.\n"
-                f"Columns & Data Types Schema: {json.dumps(columns_schema)}\n"
-                f"Sample Data (First 3 rows): {json.dumps(data_sample_head)}\n"
-                f"INSTRUCTION: Use this dataset schema and context to answer the user's analytical questions accurately."
+                f"\n\n[CONTEXT] User uploaded a file named '{uploaded_file.name}' with shape {uploaded_df.shape}.\n"
+                f"Columns and Types: {str(uploaded_df.dtypes.to_dict())}\n"
+                f"The dataframe is already loaded in the environment as a variable named `uploaded_df`.\n"
             )
         except Exception as e:
-            st.error(f"Gagal membaca file CSV: {e}")
-    st.markdown("---")
+            st.error(f"Gagal membaca CSV: {e}")
 
-# Tombol Eksekusi Utama
-process_btn = st.button("Proses Data & Visualisasikan 🚀", type="primary", use_container_width=True)
+process_btn = st.button("Jalankan Deep Thinking Analysis 🚀", type="primary", use_container_width=True)
 
 # ==========================================================
-# 🧠 ALUR PEMROSESAN UTAMA (PROMPTING & RENDER VISUALISASI)
+# 🧠 REASONING & LIVE EXECUTION ENGINE
 # ==========================================================
 if process_btn:
     if user_query.strip() == "":
-        st.warning("Ketik instruksi analisis Anda terlebih dahulu ya!")
+        st.warning("Mohon isi instruksi atau pertanyaan Anda terlebih dahulu.")
     else:
-        with st.spinner("Alex sedang memikirkan hasil analisis terbaik untuk Anda..."):
+        with st.spinner("Alex (DeepSeek-R1) sedang berpikir keras menganalisis data Anda..."):
             
+            # Prompt ketat agar AI bertindak jujur secara matematis dengan menulis kode Python nyata
             system_prompt = (
-                "You are Alex, a Senior Data Scientist. Answer the user's question naturally in the language they use (Indonesian or English).\n"
-                "CRITICAL INSTRUCTION: If the user requests new data generation, or asks for statistical transformation of the uploaded data, you MUST append a valid JSON array of objects representing the data at the very end of your response, wrapped inside ```json and ``` blocks. "
-                "The JSON must be tabular-friendly (flat key-value pairs). Do not mix prose inside the JSON block."
+                "You are Alex, an expert Data Scientist. You have access to a pandas DataFrame named `uploaded_df`.\n"
+                "Your task is to write a clean Python script to perform the requested data science task perfectly.\n"
+                "CRITICAL: You MUST wrap the executable Python code inside a ```python ... ``` block.\n"
+                "The code must perform the calculation and finally assign the resulting/transformed dataframe to a variable named `output_df`.\n"
+                "Do not use external libraries that require installation outside pandas, numpy, and scikit-learn."
             )
             
-            # Gabungkan prompt sistem dasar, konteks metadata CSV, dan kueri user aktif
-            final_user_prompt = f"{system_prompt}{csv_context_prompt}\n\nUser Question: {user_query}"
+            final_prompt = f"{system_prompt}{csv_context_prompt}\n\nUser Request: {user_query}"
             
             try:
-                # Memanggil model Llama 3.1 8B Instant (Super cepat, efisien, dan didukung penuh oleh Groq)
+                # Menggunakan DeepSeek-R1 Distill Llama 70B untuk kemampuan penalaran tingkat tinggi
                 chat_completion = client.chat.completions.create(
-                    messages=[{"role": "user", "content": final_user_prompt}],
-                    model="llama-3.1-8b-instant",
+                    messages=[{"role": "user", "content": final_prompt}],
+                    model="deepseek-r1-distill-llama-70b", 
                 )
-                full_reply = chat_completion.choices[0].message.content
+                raw_reply = chat_completion.choices[0].message.content
                 
-                # Ekstrak teks narasi penjelasan dan blok kode data JSON menggunakan Regex
-                json_match = re.search(r'```json\s*(.*?)\s*```', full_reply, re.DOTALL)
-                explanation_text = re.sub(r'```json\s*.*?\s*```', '', full_reply, flags=re.DOTALL).strip()
+                # 1. Pisahkan proses berpikir (<think>) dengan jawaban akhir jika ada
+                think_content = ""
+                if "<think>" in raw_reply and "</think>" in raw_reply:
+                    parts = raw_reply.split("</think>")
+                    think_content = parts[0].replace("<think>", "").strip()
+                    main_reply = parts[1].strip()
+                else:
+                    main_reply = raw_reply
                 
-                # Tampilkan Penjelasan Utama Hasil Analisis Alex
-                st.write("---")
-                st.subheader("💡 Analisis & Jawaban Alex")
+                # Tampilkan Proses Berpikir AI secara transparan
+                if think_content:
+                    with st.expander("💭 Lihat Proses Berpikir (Deep Thinking Process)"):
+                        st.markdown(think_content)
+                
+                # 2. Ekstrak Kode Python dari AI
+                code_match = re.search(r'```python\s*(.*?)\s*```', main_reply, re.DOTALL)
+                explanation_text = re.sub(r'```python\s*.*?\s*```', '', main_reply, flags=re.DOTALL).strip()
+                
+                st.subheader("💡 Analisis & Rekomendasi Alex")
                 st.markdown(explanation_text)
                 
-                # RENDER DATASET BARU / OLAHAN (Jika LLM merespon dengan format JSON)
-                if json_match:
-                    json_data_str = json_match.group(1)
-                    data = json.loads(json_data_str)
-                    df_to_render = pd.DataFrame(data)
+                # 3. LIVE EXECUTION: Jalankan kode buatan AI secara nyata terhadap data CSV!
+                if code_match:
+                    python_code = code_match.group(1)
                     
-                    st.write("---")
-                    st.subheader("📊 Dataset Hasil Olahan / Generasi (CSV)")
-                    st.dataframe(df_to_render, use_container_width=True)
+                    # Siapkan environment untuk eksekusi kode
+                    local_env = {
+                        'pd': pd,
+                        'px': px,
+                        'uploaded_df': st.session_state.get('uploaded_df', None),
+                        'output_df': None
+                    }
                     
-                    csv_bytes = df_to_render.to_csv(index=False).encode('utf-8')
-                    st.download_button(
-                        label="📥 Download Dataset Olahan (CSV)",
-                        data=csv_bytes,
-                        file_name='alex_processed_dataset.csv',
-                        mime='text/csv',
-                    )
-                    
-                    # Pembuatan Visualisasi Otomatis menggunakan Plotly
-                    st.write("---")
-                    st.subheader("📈 Visualisasi Grafik Otomatis")
-                    
-                    numeric_cols = df_to_render.select_dtypes(include=['number']).columns.tolist()
-                    string_cols = df_to_render.select_dtypes(include=['object']).columns.tolist()
-                    
-                    if len(string_cols) >= 1 and len(numeric_cols) >= 1:
-                        fig = px.bar(df_to_render, x=string_cols[0], y=numeric_cols[0], 
-                                     title=f"Grafik Analisis: {string_cols[0]} vs {numeric_cols[0]}",
-                                     template="plotly_dark")
-                        st.plotly_chart(fig, use_container_width=True)
-                    elif len(numeric_cols) >= 2:
-                        fig = px.line(df_to_render, x=df_to_render.index, y=numeric_cols[0], 
-                                      title=f"Tren Analisis Data: {numeric_cols[0]}", 
-                                      template="plotly_dark")
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                # RENDER DATASET UNGGAHAN (Jika tidak ada JSON baru dari LLM, namun ada file yang aktif diunggah)
-                elif uploaded_df is not None:
-                    st.write("---")
-                    st.info("💡 Tip: Alex memberikan analisis langsung pada berkas Anda. Di bawah ini adalah visualisasi cepat dari distribusi data mentah yang Anda unggah:")
-                    
-                    num_cols = uploaded_df.select_dtypes(include=['number']).columns.tolist()
-                    str_cols = uploaded_df.select_dtypes(include=['object']).columns.tolist()
-                    
-                    if len(str_cols) >= 1 and len(num_cols) >= 1:
-                        fig = px.histogram(uploaded_df, x=str_cols[0], y=num_cols[0], 
-                                           title=f"Distribusi Data Unggahan: {str_cols[0]} vs {num_cols[0]}",
-                                           template="plotly_dark")
-                        st.plotly_chart(fig, use_container_width=True)
+                    # Jalankan kode dengan menangkap output eror jika ada
+                    stdout_buffer = io.StringIO()
+                    try:
+                        with contextlib.redirect_stdout(stdout_buffer):
+                            exec(python_code, globals(), local_env)
                         
+                        # Ambil dataframe hasil eksekusi nyata
+                        real_output_df = local_env.get('output_df', None)
+                        
+                        if isinstance(real_output_df, pd.DataFrame):
+                            st.write("---")
+                            st.subheader("📊 Dataset Hasil Eksekusi Nyata Backend (Akurat 100%)")
+                            st.dataframe(real_output_df, use_container_width=True)
+                            
+                            # Tombol Download Data Asli Hasil Perhitungan
+                            csv_bytes = real_output_df.to_csv(index=False).encode('utf-8')
+                            st.download_button(
+                                label="📥 Download Hasil Analisis (CSV)",
+                                data=csv_bytes,
+                                file_name='alex_real_executed_data.csv',
+                                mime='text/csv',
+                            )
+                            
+                            # Render Grafik Otomatis dari Data Nyata
+                            num_cols = real_output_df.select_dtypes(include=['number']).columns.tolist()
+                            str_cols = real_output_df.select_dtypes(include=['object', 'category']).columns.tolist()
+                            
+                            if len(str_cols) >= 1 and len(num_cols) >= 1:
+                                fig = px.bar(real_output_df, x=str_cols[0], y=num_cols[0], title="Visualisasi Hasil Eksekusi", template="plotly_dark")
+                                st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            # Jika kodenya hanya melakukan print statement matematika
+                            print_output = stdout_buffer.getvalue()
+                            if print_output:
+                                st.info("🖥️ **Hasil Perhitungan Konsol:**")
+                                st.code(print_output)
+                                
+                    except Exception as exec_err:
+                        st.error(f"Eror saat mengeksekusi kode Python buatan AI: {exec_err}")
+                        with st.expander("Lihat Kode yang Gagal"):
+                            st.code(python_code)
+                            
             except Exception as e:
-                st.error(f"Terjadi kesalahan pemrosesan pada sistem AI: {e}")
+                st.error(f"Terjadi kendala pada API Groq: {e}")
