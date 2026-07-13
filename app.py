@@ -90,7 +90,7 @@ if process_btn:
                 # Menggunakan DeepSeek-R1 Distill Llama 70B untuk kemampuan penalaran tingkat tinggi
                 chat_completion = client.chat.completions.create(
                     messages=[{"role": "user", "content": final_prompt}],
-                    model="deepseek-r1-distill-llama-70b", 
+                    model="llama-3.3-70b-versatile", 
                 )
                 raw_reply = chat_completion.choices[0].message.content
                 
