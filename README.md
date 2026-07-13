@@ -12,13 +12,6 @@ https://dsassistanttolearn.streamlit.app/
 
 **Explanation (English):**
 
-Here is the English translation, tailored for an executive presentation:
-
-📊 Customer Profile Mapping Report
-"Good morning/afternoon. We have successfully mapped our customer base using two primary indicators: Customer Tenure (X-axis) and Monthly Charges (Y-axis).
-
-Based on this analysis, our customers are categorized into three strategic groups:
-
 **1. Red Group (Cluster 1) – Crisis Zone 🚨**
 Profile: New customers (joined less than 10 months) who are immediately charged at a premium rate (ranging from $75 to $110).
 
@@ -44,24 +37,28 @@ Recommended Action: Implement appreciation programs such as Loyalty Rewards, VIP
 "Our primary focus for the next month is to rescue the Red Group. By optimizing their costs or enhancing their service experience, we can transition them into long-term, loyal customers similar to our Blue Group."
 
 **Explanation (Bahasa Indonesia):**
+
 **1. Kelompok Merah (Cluster 1) – Zona Bahaya / Krisis 🚨**
-Siapa mereka? Pelanggan baru (baru bergabung kurang dari 10 bulan) tapi langsung dikenakan biaya bulanan yang sangat mahal (berkisar antara $75 hingga $110).
+**Siapa mereka? **
+Pelanggan baru (baru bergabung kurang dari 10 bulan) tapi langsung dikenakan biaya bulanan yang sangat mahal (berkisar antara $75 hingga $110).
 
-Dampak Bisnis: Ini adalah kelompok paling rentan kabur (high-risk churn). Mereka belum loyal, tapi sudah dibebani biaya tinggi.
+**Dampak Bisnis:** Ini adalah kelompok paling rentan kabur (high-risk churn). Mereka belum loyal, tapi sudah dibebani biaya tinggi.
 
-Rekomendasi Aksi: Kita perlu segera memberikan promo loyalty, diskon khusus, atau treatment ekstra dari Customer Service agar mereka tidak kapok dan pindah ke kompetitor.
+**Rekomendasi Aksi:** Kita perlu segera memberikan promo loyalty, diskon khusus, atau treatment ekstra dari Customer Service agar mereka tidak kapok dan pindah ke kompetitor.
 
 **2. Kelompok Hijau (Cluster 0) – Zona Hemat / Stabil 🪙**
-Siapa mereka? Pelanggan dengan masa langganan jangka menengah (sekitar 10 hingga 25 bulan) yang memilih paket dengan biaya bulanan rendah (di bawah $50).
+**Siapa mereka? **
+Pelanggan dengan masa langganan jangka menengah (sekitar 10 hingga 25 bulan) yang memilih paket dengan biaya bulanan rendah (di bawah $50).
 
-Dampak Bisnis: Kelompok ini cenderung stabil dan aman karena mereka merasa mendapatkan harga yang murah dan pas di kantong.
+**Dampak Bisnis:** Kelompok ini cenderung stabil dan aman karena mereka merasa mendapatkan harga yang murah dan pas di kantong.
 
-Rekomendasi Aksi: Kelompok ini bisa menjadi target empuk untuk program upselling (ditawari naik ke paket yang sedikit lebih mahal secara bertahap).
+**Rekomendasi Aksi:** Kelompok ini bisa menjadi target empuk untuk program upselling (ditawari naik ke paket yang sedikit lebih mahal secara bertahap).
 
 **3. Kelompok Biru (Cluster 2) – Kelompok "Sultan" Loyal 💎**
-Siapa mereka? Pelanggan paling setia kita! Mereka sudah bertahan sangat lama (di atas 30 bulan, bahkan ada yang sampai 60 bulan). Pengeluaran mereka bervariasi, dan banyak yang rela membayar mahal hingga $90+.
+**Siapa mereka? **
+Pelanggan paling setia kita! Mereka sudah bertahan sangat lama (di atas 30 bulan, bahkan ada yang sampai 60 bulan). Pengeluaran mereka bervariasi, dan banyak yang rela membayar mahal hingga $90+.
 
-Dampak Bisnis: Ini adalah sumber pendapatan utama (cash cow) perusahaan yang wajib kita pertahankan mati-matian.
+**Dampak Bisnis:** Ini adalah sumber pendapatan utama (cash cow) perusahaan yang wajib kita pertahankan mati-matian.
 
-Rekomendasi Aksi: Berikan program apresiasi seperti Loyalty Rewards, akses VIP, atau fitur eksklusif agar mereka tetap merasa dihargai dan terus memperpanjang kontrak.
+**Rekomendasi Aksi:** Berikan program apresiasi seperti Loyalty Rewards, akses VIP, atau fitur eksklusif agar mereka tetap merasa dihargai dan terus memperpanjang kontrak.
 
